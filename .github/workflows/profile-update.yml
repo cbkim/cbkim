@@ -4,16 +4,13 @@ on:
   schedule:
     # 03:00 UTC = 06:00 EAT (Nairobi). GitHub cron has up to ~15min jitter.
     - cron: '0 3 * * *'
-  workflow_dispatch:  # allow manual runs from the Actions tab
+  workflow_dispatch:
 
-# Silence the Node.js 20 deprecation warning by opting into Node 24 now.
-# This affects bundled JS actions (checkout, setup-python). Safe to remove
-# once those actions ship Node 24-native versions.
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
-# Prevent overlapping runs (e.g. cron firing while a manual run is still going).
-# This is the root-cause fix for most "fetch first" race conditions.
+# Prevent overlapping workflow runs. Note: this does NOT prevent manual
+# commits to main from the web UI mid-run — the retry loop below handles that.
 concurrency:
   group: profile-update
   cancel-in-progress: false
@@ -22,14 +19,12 @@ jobs:
   update:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # required to commit the updated README
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # Full history so rebase has something to work with if remote moved
           fetch-depth: 0
-          # Persist the GITHUB_TOKEN credential helper for the push step
           persist-credentials: true
 
       - name: Set up Python
@@ -41,55 +36,80 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Generate updated README
-        run: python scripts/update_profile.py
+      # ──────────────────────────────────────────────────────────────────
+      # Race-proof pattern.
+      #
+      # Every attempt starts from absolute latest remote state. There is
+      # no rebase, no merge, no conflict resolution — because both sides
+      # always regenerate the same files (README.md, state/last_run.json),
+      # and there is no version of those files that "merges" two
+      # independent regenerations.
+      #
+      # If `git push` fails because remote moved during our run, the next
+      # iteration:
+      #   1. Hard-resets local to whatever is on remote NOW
+      #   2. Re-runs the Python generator against that newer state
+      #   3. Commits the regenerated content on top of the new remote tip
+      #   4. Tries to push again
+      # ──────────────────────────────────────────────────────────────────
+      - name: Generate, commit, and push (race-proof)
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
           GH_USERNAME: ${{ vars.GH_USERNAME }}
           ACTIVITY_DAYS: ${{ vars.ACTIVITY_DAYS || '7' }}
-
-      - name: Commit & push if changed
-        shell: bash
         run: |
-          # Disable strict-error mode so our retry loop can actually loop.
-          # Default `set -e` from the runner aborts the script on the first
-          # non-zero exit, which is what was eating our retry attempts.
           set +e
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add README.md state/last_run.json
-          if git diff --staged --quiet; then
-            echo "✓ No changes — README is already up to date."
-            exit 0
-          fi
-
-          git commit -m "chore: auto-update profile [skip ci]"
-
-          # Retry push up to 3 times. If the remote has moved (someone
-          # committed while we were running), pull-with-rebase puts our
-          # auto-commit on top of the new remote tip, then we try again.
           for attempt in 1 2 3; do
-            echo "=== Push attempt $attempt ==="
+            echo ""
+            echo "=========================================="
+            echo " Attempt $attempt: sync -> regenerate -> push"
+            echo "=========================================="
+
+            # 1. Sync to absolute latest remote, discarding any local state
+            #    from a previous failed attempt.
+            echo "-> Fetching latest origin/main..."
+            git fetch origin main
+            git reset --hard origin/main
+
+            # 2. Regenerate the README against the current state of the world.
+            echo "-> Running content generator..."
+            python scripts/update_profile.py
+            gen_status=$?
+            if [ $gen_status -ne 0 ]; then
+              echo "X Generator failed with exit $gen_status (not a race issue, aborting)"
+              exit $gen_status
+            fi
+
+            # 3. Stage and check for actual changes.
+            git add README.md state/last_run.json
+            if git diff --staged --quiet; then
+              echo "OK No changes — README is already up to date."
+              exit 0
+            fi
+
+            # 4. Commit on top of the freshly-fetched remote tip and push.
+            git commit -m "chore: auto-update profile [skip ci]"
+            echo "-> Pushing..."
             git push 2>&1
             push_status=$?
 
             if [ $push_status -eq 0 ]; then
-              echo "✓ Push succeeded on attempt $attempt"
+              echo "OK Push succeeded on attempt $attempt"
               exit 0
             fi
 
-            echo "✗ Push attempt $attempt failed (exit $push_status). Rebasing on remote..."
-            git pull --rebase origin main 2>&1
-            pull_status=$?
-
-            if [ $pull_status -ne 0 ]; then
-              echo "✗ Rebase failed (exit $pull_status) — aborting rebase, will retry"
-              git rebase --abort 2>&1 || true
-            fi
+            echo "X Attempt $attempt: remote moved during this run."
+            echo "  Will sync to the new remote tip and try again."
           done
 
-          echo "✗ Push failed after 3 attempts. Last remote state may have unresolvable conflict."
-          echo "  Workflow concurrency group should prevent this — investigate manual commits to main."
+          echo ""
+          echo "X Push failed after 3 attempts."
+          echo "  Remote 'main' is being written to faster than a single"
+          echo "  sync->generate->push cycle (~10s). Pause manual commits"
+          echo "  to the repo and re-run the workflow."
           exit 1
