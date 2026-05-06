@@ -6,6 +6,10 @@ on:
     - cron: '0 3 * * *'
   workflow_dispatch:  # allow manual runs from the Actions tab
 
+concurrency:
+  group: profile-update
+  cancel-in-progress: false
+
 jobs:
   update:
     runs-on: ubuntu-latest
@@ -14,6 +18,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -48,7 +54,11 @@ jobs:
               exit 0
             fi
             echo "Push attempt $i rejected — pulling with rebase and retrying"
-            git pull --rebase origin main
+            if ! git pull --rebase origin main; then
+              echo "Rebase failed on attempt $i"
+              git rebase --abort
+              continue
+            fi
           done
           echo "Push failed after 3 attempts"
           exit 1
