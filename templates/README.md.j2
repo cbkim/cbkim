@@ -1,0 +1,61 @@
+# {{ user.name or user.login }}
+{%- if user.bio %}
+
+> {{ user.bio }}
+{%- endif %}
+
+---
+
+## 🏗️ Currently building
+
+{% if user.pinnedItems.nodes -%}
+{%- for repo in user.pinnedItems.nodes %}
+- **[{{ repo.name }}]({{ repo.url }})** — {{ repo.description or '_No description yet_' }}{% if repo.primaryLanguage %} · `{{ repo.primaryLanguage.name }}`{% endif %} · ⭐ {{ repo.stargazerCount }}{% if repo.forkCount %} · 🍴 {{ repo.forkCount }}{% endif %}
+{%- endfor %}
+{%- else %}
+_Pin some repositories on your profile to feature them here._
+{%- endif %}
+
+## 📅 The last {{ activity.window_days }} days on GitHub
+
+{% if not activity.any_activity -%}
+A quieter week here — heads down on something offline, or shipping through other channels.
+{%- else -%}
+{%- if activity.commits %}
+- **{{ activity.commits }}** commit{{ 's' if activity.commits != 1 else '' }} pushed
+{%- endif %}
+{%- if activity.prs_opened %}
+- **{{ activity.prs_opened }}** pull request{{ 's' if activity.prs_opened != 1 else '' }} opened
+{%- endif %}
+{%- if activity.issues_opened %}
+- **{{ activity.issues_opened }}** issue{{ 's' if activity.issues_opened != 1 else '' }} opened
+{%- endif %}
+{%- if activity.repos_created %}
+- **{{ activity.repos_created }}** new repo{{ 's' if activity.repos_created != 1 else '' }} created
+{%- endif %}
+{%- if activity.repos_starred %}
+- **{{ activity.repos_starred }}** repo{{ 's' if activity.repos_starred != 1 else '' }} starred
+{%- endif %}
+{%- if activity.active_repos %}
+
+Active in: {% for r in activity.active_repos %}[`{{ r }}`](https://github.com/{{ r }}){% if not loop.last %} · {% endif %}{% endfor %}
+{%- endif %}
+{%- endif %}
+
+## 💻 Recent tech mix
+
+{% if languages -%}
+{%- for lang in languages %}
+- `{{ lang.name }}` — {{ lang.pct }}%
+{%- endfor %}
+{%- else %}
+_No public repos with detected languages yet._
+{%- endif %}
+
+## 📊 At a glance
+
+{{ user.repositories.totalCount }} public repos · {{ user.followers.totalCount }} followers · following {{ user.following.totalCount }}
+
+---
+
+<sub>🤖 Auto-updated daily by a GitHub Action — last run {{ updated_at }}.</sub>
