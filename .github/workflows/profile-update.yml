@@ -6,6 +6,14 @@ on:
     - cron: '0 3 * * *'
   workflow_dispatch:  # allow manual runs from the Actions tab
 
+# Silence the Node.js 20 deprecation warning by opting into Node 24 now.
+# This affects bundled JS actions (checkout, setup-python). Safe to remove
+# once those actions ship Node 24-native versions.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+# Prevent overlapping runs (e.g. cron firing while a manual run is still going).
+# This is the root-cause fix for most "fetch first" race conditions.
 concurrency:
   group: profile-update
   cancel-in-progress: false
@@ -19,7 +27,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          # Full history so rebase has something to work with if remote moved
           fetch-depth: 0
+          # Persist the GITHUB_TOKEN credential helper for the push step
+          persist-credentials: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -38,27 +49,47 @@ jobs:
           ACTIVITY_DAYS: ${{ vars.ACTIVITY_DAYS || '7' }}
 
       - name: Commit & push if changed
+        shell: bash
         run: |
+          # Disable strict-error mode so our retry loop can actually loop.
+          # Default `set -e` from the runner aborts the script on the first
+          # non-zero exit, which is what was eating our retry attempts.
+          set +e
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           git add README.md state/last_run.json
           if git diff --staged --quiet; then
-            echo "No changes — README is up to date."
+            echo "✓ No changes — README is already up to date."
             exit 0
           fi
+
           git commit -m "chore: auto-update profile [skip ci]"
-          # Retry push up to 3 times, rebasing on remote changes between attempts
-          for i in 1 2 3; do
-            if git push; then
-              echo "Push succeeded on attempt $i"
+
+          # Retry push up to 3 times. If the remote has moved (someone
+          # committed while we were running), pull-with-rebase puts our
+          # auto-commit on top of the new remote tip, then we try again.
+          for attempt in 1 2 3; do
+            echo "=== Push attempt $attempt ==="
+            git push 2>&1
+            push_status=$?
+
+            if [ $push_status -eq 0 ]; then
+              echo "✓ Push succeeded on attempt $attempt"
               exit 0
             fi
-            echo "Push attempt $i rejected — pulling with rebase and retrying"
-            if ! git pull --rebase origin main; then
-              echo "Rebase failed on attempt $i"
-              git rebase --abort
-              continue
+
+            echo "✗ Push attempt $attempt failed (exit $push_status). Rebasing on remote..."
+            git pull --rebase origin main 2>&1
+            pull_status=$?
+
+            if [ $pull_status -ne 0 ]; then
+              echo "✗ Rebase failed (exit $pull_status) — aborting rebase, will retry"
+              git rebase --abort 2>&1 || true
             fi
           done
-          echo "Push failed after 3 attempts"
+
+          echo "✗ Push failed after 3 attempts. Last remote state may have unresolvable conflict."
+          echo "  Workflow concurrency group should prevent this — investigate manual commits to main."
           exit 1
