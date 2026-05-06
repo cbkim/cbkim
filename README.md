@@ -11,7 +11,10 @@ _Pin some repositories on your profile to feature them here._
 
 ## 📅 The last 7 days on GitHub
 
-A quieter week here — heads down on something offline, or shipping through other channels.
+
+- **1** repo starred
+
+Active in: [`cbkim/cbkim`](https://github.com/cbkim/cbkim)
 
 ## 💻 Recent tech mix
 
@@ -28,4 +31,4 @@ A quieter week here — heads down on something offline, or shipping through oth
 
 ---
 
-<sub>🤖 Auto-updated daily by a GitHub Action — last run 2026-05-06 08:07 UTC.</sub>
+<sub>🤖 Auto-updated daily by a GitHub Action — last run 2026-05-06 08:35 UTC.</sub>
