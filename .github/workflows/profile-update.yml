@@ -38,7 +38,17 @@ jobs:
           git add README.md state/last_run.json
           if git diff --staged --quiet; then
             echo "No changes — README is up to date."
-          else
-            git commit -m "chore: auto-update profile [skip ci]"
-            git push
+            exit 0
           fi
+          git commit -m "chore: auto-update profile [skip ci]"
+          # Retry push up to 3 times, rebasing on remote changes between attempts
+          for i in 1 2 3; do
+            if git push; then
+              echo "Push succeeded on attempt $i"
+              exit 0
+            fi
+            echo "Push attempt $i rejected — pulling with rebase and retrying"
+            git pull --rebase origin main
+          done
+          echo "Push failed after 3 attempts"
+          exit 1
