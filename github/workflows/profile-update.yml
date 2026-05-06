@@ -1,0 +1,44 @@
+name: Update Profile README
+
+on:
+  schedule:
+    # 03:00 UTC = 06:00 EAT (Nairobi). GitHub cron has up to ~15min jitter.
+    - cron: '0 3 * * *'
+  workflow_dispatch:  # allow manual runs from the Actions tab
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # required to commit the updated README
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Generate updated README
+        run: python scripts/update_profile.py
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          GH_USERNAME: ${{ vars.GH_USERNAME }}
+          ACTIVITY_DAYS: ${{ vars.ACTIVITY_DAYS || '7' }}
+
+      - name: Commit & push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md state/last_run.json
+          if git diff --staged --quiet; then
+            echo "No changes — README is up to date."
+          else
+            git commit -m "chore: auto-update profile [skip ci]"
+            git push
+          fi
