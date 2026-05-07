@@ -27,8 +27,8 @@ Active in: [`cbkim/cbkim`](https://github.com/cbkim/cbkim)
 
 ## 📊 At a glance
 
-6 public repos · 1 followers · following 1
+6 public repos · 2 followers · following 1
 
 ---
 
-<sub>🤖 Auto-updated daily by a GitHub Action — last run 2026-05-06 09:07 UTC.</sub>
+<sub>🤖 Auto-updated daily by a GitHub Action — last run 2026-05-07 05:52 UTC.</sub>
