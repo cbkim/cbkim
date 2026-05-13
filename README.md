@@ -12,9 +12,10 @@ _Pin some repositories on your profile to feature them here._
 ## 📅 The last 7 days on GitHub
 
 
-- **1** repo starred
+- **17** pull requests opened
+- **1** issue opened
 
-Active in: [`cbkim/cbkim`](https://github.com/cbkim/cbkim)
+Active in: [`Mizani-Labs/Fairlens`](https://github.com/Mizani-Labs/Fairlens)
 
 ## 💻 Recent tech mix
 
@@ -31,4 +32,4 @@ Active in: [`cbkim/cbkim`](https://github.com/cbkim/cbkim)
 
 ---
 
-<sub>🤖 Auto-updated daily by a GitHub Action — last run 2026-05-12 05:57 UTC.</sub>
+<sub>🤖 Auto-updated daily by a GitHub Action — last run 2026-05-13 06:16 UTC.</sub>
