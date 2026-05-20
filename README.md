@@ -11,11 +11,7 @@ _Pin some repositories on your profile to feature them here._
 
 ## 📅 The last 7 days on GitHub
 
-
-- **17** pull requests opened
-- **1** issue opened
-
-Active in: [`Mizani-Labs/Fairlens`](https://github.com/Mizani-Labs/Fairlens)
+A quieter week here — heads down on something offline, or shipping through other channels.
 
 ## 💻 Recent tech mix
 
@@ -32,4 +28,4 @@ Active in: [`Mizani-Labs/Fairlens`](https://github.com/Mizani-Labs/Fairlens)
 
 ---
 
-<sub>🤖 Auto-updated daily by a GitHub Action — last run 2026-05-19 06:39 UTC.</sub>
+<sub>🤖 Auto-updated daily by a GitHub Action — last run 2026-05-20 06:39 UTC.</sub>
