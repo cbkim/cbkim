@@ -28,4 +28,4 @@ A quieter week here — heads down on something offline, or shipping through oth
 
 ---
 
-<sub>🤖 Auto-updated daily by a GitHub Action — last run 2026-06-27 06:20 UTC.</sub>
+<sub>🤖 Auto-updated daily by a GitHub Action — last run 2026-06-28 06:53 UTC.</sub>
