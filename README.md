@@ -24,8 +24,8 @@ A quieter week here — heads down on something offline, or shipping through oth
 
 ## 📊 At a glance
 
-6 public repos · 2 followers · following 1
+6 public repos · 3 followers · following 1
 
 ---
 
-<sub>🤖 Auto-updated daily by a GitHub Action — last run 2026-11-17 11:17 UTC.</sub>
+<sub>🤖 Auto-updated daily by a GitHub Action — last run 2026-11-18 10:51 UTC.</sub>
